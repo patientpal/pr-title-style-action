@@ -1,6 +1,9 @@
 name: Enforce Pull Request Title includes Jira Issue Key
 description: Check that a PR title starts with a Jira Issue Key
 inputs:
+  prefixes:
+    description: 'Additional set of prefixes to accept'
+    required: false
   projectKey:
     description: 'A specific Jira Project Key that must be included.'
     required: false

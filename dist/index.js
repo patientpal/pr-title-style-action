@@ -35,18 +35,30 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 async function run() {
     try {
-        core.debug("Starting PR Title check for Jira Issue Key");
+        core.debug('Starting PR Title check for Jira Issue Key');
         const title = getPullRequestTitle();
         const regex = getRegex();
+        const prefixes = core.getInput('prefixes', { required: false });
         core.debug(title);
         core.debug(regex.toString());
-        if (!regex.test(title)) {
-            core.debug(`Regex ${regex} failed with title ${title}`);
-            core.info("Title Failed");
-            core.setFailed("PullRequest title does not start with a Jira Issue key.");
-            return;
+        // if we have prefixes check then
+        if (prefixes?.length > 0) {
+            const acceptedPrefixes = prefixes.split(',').map((prefix) => prefix.trim());
+            for (const prefix of acceptedPrefixes) {
+                if (title.startsWith(prefix)) {
+                    core.info(`Title Passed: Accepted prefix ${prefix} in title`);
+                    return;
+                }
+            }
         }
-        core.info("Title Passed");
+        if (regex.test(title)) {
+            core.info('Title Passed: Contains Jira Ticket');
+        }
+        else {
+            core.debug(`Regex ${regex} failed with title ${title}`);
+            core.info('Title Failed');
+            core.setFailed('PullRequest title does not start with a Jira Issue key.');
+        }
     }
     catch (error) {
         core.setFailed(error.message);
@@ -54,11 +66,11 @@ async function run() {
 }
 function getRegex() {
     let regex = /(?<=^|[a-z]\-|[\s\p{Punct}&&[^\-]])([A-Z][A-Z0-9_]*-\d+)(?![^\W_])(\s)+(.)+/;
-    const projectKey = core.getInput("projectKey", { required: false });
-    if (projectKey && projectKey !== "") {
+    const projectKey = core.getInput('projectKey', { required: false });
+    if (projectKey && projectKey !== '') {
         core.debug(`Project Key ${projectKey}`);
         if (!/(?<=^|[a-z]\-|[\s\p{Punct}&&[^\-]])([A-Z][A-Z0-9_]*)/.test(projectKey)) {
-            throw new Error(`Project Key  "${projectKey}" is invalid`);
+            throw new Error(`Project Key  '${projectKey}' is invalid`);
         }
         regex = new RegExp(`(^${projectKey}-){1}(\\d)+(\\s)+(.)+`);
     }
@@ -69,7 +81,7 @@ function getPullRequestTitle() {
     let pull_request = github.context.payload.pull_request;
     core.debug(`Pull Request: ${JSON.stringify(github.context.payload.pull_request)}`);
     if (pull_request == undefined || pull_request.title == undefined) {
-        throw new Error("This action should only be run with Pull Request Events");
+        throw new Error('This action should only be run with Pull Request Events');
     }
     return pull_request.title;
 }
